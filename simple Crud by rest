@@ -1,0 +1,282 @@
+/*
+following function will fetch the data from REST query 
+REST Query: 
+http://para12ksp03:5000/wings/_api/web/lists/getbyTitle('basicemployeedetails')/items?$select=OfficialName
+
+function will return the employeeData: officialName of the employee from basicemployeedetails list.
+*/
+
+function getEmployeeNames() {
+    var TypeObject = new Object();
+    TypeObject.listName = "BasicEmployeeDetails";
+    TypeObject.query = "$select=OfficialName,EmployeeAdNameId";
+    employeeData = getListItems(TypeObject).d.results;
+    //    console.log(JSON.stringify(employeeData));
+    return employeeData;
+}
+
+function req() {
+    var TypeObject = new Object();
+    TypeObject.listName = "Requests";
+    TypeObject.query = "";
+    employeeData = getListItems(TypeObject).d.results;
+    //    console.log(JSON.stringify(employeeData));
+    return employeeData;
+}
+
+//created new array for storing name of the employees which will be used in auto complete filed
+var employeeArray = [];
+var employeeArrayForAssignTo = [];
+var employeeOfficalName;
+var employeeId;
+
+   //Get the id of employee AD name.
+    function getADNameId(adName) {
+    var EmpAdData;
+        $.ajax({
+            url: _spPageContextInfo.webAbsoluteUrl + "/_api/web/SiteUsers?$Select=Id,Title&$filter=Title eq '" + adName + "'",
+            type: "GET",
+            async: false,
+            headers: {
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+            },
+            success: function (data) {
+                console.log(JSON.stringify(data));
+                EmpAdData = data.d.results;
+            },
+            error: function (err) {
+                console.log(JSON.stringify(err));
+            }
+        });
+        return EmpAdData;
+    }
+
+// get user name from id
+function getUserFromId(userid) {
+
+    // var userid = _spPageContextInfo.userId;
+    var requestUri = _spPageContextInfo.webAbsoluteUrl + "/_api/web/getuserbyid(" + userid + ")";
+    var requestHeaders = {
+        "accept": "application/json;odata=verbose"
+    };
+    $.ajax({
+        url: requestUri,
+        async: false,
+        contentType: "application/json;odata=verbose",
+        headers: requestHeaders,
+        success: onSuccess,
+        error: onError
+    });
+
+    function onSuccess(data, request) {
+        var Logg = data.d;
+        userLoginName = Logg.Title;
+    }
+
+    function onError(error) {
+        alert("error");
+    }
+    return userLoginName;
+}
+
+
+/*
+following function will take data from above function and only add official name of the employee to array
+function array.push() is used to add employee information to array.
+*/
+function AddDataToAutoComplete() {
+    var dataFetched = getEmployeeNames();
+    if (dataFetched.length != 0) {
+        $.each(dataFetched, function (i) {
+            employeeOfficalName = dataFetched[i].OfficialName;
+            employeeId = dataFetched[i].EmployeeNo;
+            employees.push({
+                label: employeeOfficalName,
+                value: employeeId
+            })
+        });
+    }
+}
+
+
+
+//following function will fetch the data from request Names type list.
+function GetRequestNames() {
+    var TypeObject = new Object();
+    TypeObject.listName = "RequestNames";
+    TypeObject.query = "$select=ID,Title";
+    requestNamesData = getListItems(TypeObject).d.results;
+    return requestNamesData;
+}
+
+//following function will add the data to seperation type dropdown list which are fetched 
+// in above function GetSeperationType.
+function addDataToRequestNamesDropdown() {
+    var select = document.getElementById('ddlRequests');
+    var dataFetched = GetRequestNames();
+    if (dataFetched.length != 0) {
+        $.each(dataFetched, function (i) {
+            RequestNames = dataFetched[i].Title;
+            RequestNamesId = dataFetched[i].ID;
+            select.options[select.options.length] = new Option(RequestNames, RequestNamesId);
+        });
+    }
+}
+
+
+$(function () {
+	//To hide timeline from task list view web part
+    $("#divctl00_ctl48_g_85c03acc_34fd_45e6_9648_fe72d689a3f5_ctl01").hide();
+    addDataToRequestNamesDropdown();
+    employeeData = getEmployeeNames();
+    if (employeeData.length != 0) {
+        $.each(employeeData, function (i) {
+            employeeArray.push({
+                label: employeeData[i].OfficialName,
+                value: employeeData[i].EmployeeAdNameId
+            });
+        });
+    }
+
+    $("#txtRequestForPerson").autocomplete({ // Apply Autocomplete.
+        source: employeeArray,
+        select: function (event, ui) {
+            $("#txtRequestForPerson").val(ui.item.label);
+            employeeADId = ui.item.value;
+            return false;
+        }
+    });
+
+    $("#txtAssignTo").autocomplete({ // Apply Autocomplete.
+        source: employeeArray,
+        select: function (event, ui) {
+            $("#txtAssignTo").val(ui.item.label);
+            employeeADId1 = ui.item.value;
+            return false;
+        }
+    });
+
+    $("#btnSubmit").click(function () {
+        //function for adding the data 	
+        saveData();
+
+    });
+
+    function saveData() {
+
+        var itemId = $("#hdnRecordId").val();
+        if (itemId == "") {
+            var body = {
+                "__metadata": {
+                    "type": "SP.Data.RequestsListItem"
+                },
+                    "Title": "Request",
+                    "Body": $("#txtDescription").val(),
+                    "RequestForPersonId": employeeADId,
+                    "RequestId": $("#ddlRequests").val(),
+                    "AssignedToId": {
+                    "results": [employeeADId1]
+                }
+
+            };
+
+            body = JSON.stringify(body);
+
+            $.ajax({
+                url: _spPageContextInfo.webAbsoluteUrl + "/_api/web/lists/getByTitle('Requests')/items",
+                type: "POST",
+                data: body,
+                async: false,
+                headers: {
+                    "X-RequestDigest": $("#__REQUESTDIGEST").val(),
+                        "accept": "application/json;odata=verbose",
+                        "content-type": "application/json;odata=verbose",
+                        "content-length": body.length
+                },
+
+                success: function (data) {
+                    alert("Request Sent.");
+                    location.reload();
+                },
+
+                error: function (err) {
+                    alert(JSON.stringify(err));
+                }
+            });
+        } else {       
+		     var requestForPerson  =  getADNameId($("#txtRequestForPerson").val());   
+			var assignTo = getADNameId($("#txtAssignTo").val());   
+             var bodyForEdit = {
+                "__metadata": {
+                    "type": "SP.Data.RequestsListItem"
+                },
+                    "Title": "Request",
+                    "Body": $("#txtDescription").val(),
+                    "RequestForPersonId": requestForPerson[0].Id,
+                    "RequestId": $("#ddlRequests").val(),
+                    "AssignedToId": {
+                    "results": [assignTo[0].Id]
+                }
+            };
+            bodyForEdit = JSON.stringify(bodyForEdit);
+            alert(bodyForEdit);
+        }
+
+        $.ajax({
+            url: _spPageContextInfo.webAbsoluteUrl + "/_api/web/lists/getbytitle('Requests')/items(" + itemId + ")",
+            type: "POST",
+            async: false,
+            headers: {
+                "X-RequestDigest": $("#__REQUESTDIGEST").val(),
+                    "IF-MATCH": "*",
+                    "X-HTTP-Method": "MERGE",
+                    "accept": "application/json;odata=verbose",
+                    "content-type": "application/json;odata=verbose"
+            },
+            data: bodyForEdit,
+            success: function (data) {
+                alert("Record updated successfully");
+                location.reload();
+                //successStatus("Data Updated Successfully");
+            },
+            error: function (err) {
+                var y = JSON.parse(err.responseText);
+                alert("Error: " + y.error.message.value);
+                alert("Record can not be updated.");
+            }
+        });
+    }
+
+    //end of function for adding the data
+
+
+
+    //When edit button is clicked.
+    $(document).on("click", "#idHomePageEditItem", function () {
+        $("#Hero-WPQ2").next().next().next().children("tbody").children().each(function () {
+            if ($(this).hasClass("s4-itm-selected")) {
+                // alert($(this).attr('id'));
+                //var selectedRecordId = $(this).children().eq(1).children().eq(0).attr("id");
+                var selectedRecordId = $(this).children().eq(1).children().children().children().children().attr("liid");
+                alert("Id of selected record: " + selectedRecordId);
+                $("#hdnRecordId").val(selectedRecordId);
+                var RequestsObject = new Object();
+                RequestsObject.listName = "Requests";
+                RequestsObject.query = "$filter=Id eq '" + selectedRecordId + "'";
+                tempData = getListItems(RequestsObject).d.results;
+                $("#txtDescription").val((tempData[0].Body)); // fill data in DOM 
+                $("#txtRequestForPerson").val(getUserFromId(tempData[0].RequestForPersonId));
+                $("#txtAssignTo").val(getUserFromId(tempData[0].AssignedToId.results));
+                $("#ddlRequests").val(tempData[0].RequestId);
+                //set value to the hidden fields
+               // $("#hdnAssignTo").val(tempData[0].AssignedToId.results);
+               // $("#hdnRequestForPerson").val(tempData[0].RequestForPersonId);
+               // alert("value while set" + $("#hdnAssignTo").val());
+                
+            }
+        });
+    });
+
+
+});
