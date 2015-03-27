@@ -1,0 +1,100 @@
+//Following method is used for passing status message
+function passMessage(message) {
+    alert(message);
+}
+
+//Following method is used for refreshing view of a list after add or update operation
+function refreshListView() {
+    var selectedViewId = ctx.view;
+    var controlId = 'ctl00$m$g_' + selectedViewId.toLowerCase().replace(/-/g, "_").replace(/{|}/g, "") + '$ctl02';
+    __doPostBack(controlId);
+}
+
+// getListItems method will retrieve list items from a list
+function getListItems(list) {
+    var responseData;
+    $.ajax({
+        url: _spPageContextInfo.webAbsoluteUrl + "/_api/web/lists/getbytitle('" + list.listName + "')/items?" + list.query,
+        type: "GET",
+        async: false,
+        headers: {
+            "accept": "application/json;odata=verbose",
+            "content-type": "application/json;odata=verbose"
+        },
+        success: function (data) {
+            if (data != undefined) {
+                responseData = data;
+            }
+        },
+        error: function (err) {
+        }
+    });
+    return responseData;
+}
+
+//----------------------------------------------------------------------------------------------------------
+// listData defines the structure of the object for some methods
+function listData(listName, dataPair, listItemId) {
+    var self = this;
+    self.listName = listName,//list Name
+    self.dataPair = dataPair,//value pair of 'site column name' and 'data to add/update into list'
+    self.listItemId = listItemId//id of the list item to be modified
+}
+
+// columnMetaData will build a string for the metadata of the list item
+function columnMetaData(listData) {
+    var body = "{'__metadata': { 'type': 'SP.Data." + listData.listName + "ListItem' }";    
+    for (index = 0; index <= listData.dataPair.length - 1; index++) {
+        if (listData.dataPair[index][1] != undefined && listData.dataPair[index][1] != "") {
+            body += ",'" + listData.dataPair[index][0] + "':'" + listData.dataPair[index][1] + "'";
+        }
+        else {
+            body += ",'" + listData.dataPair[index][0] + "':" + null + "";
+        }
+    }
+    body += '}';
+    console.log(body);
+    return body;
+}
+
+// Following method will save a list item in a list
+var addListItem = function (listItem, callBackSuccess, callBackError) { 
+debugger;
+    var body = columnMetaData(listItem);
+    $.ajax({
+        url: _spPageContextInfo.webAbsoluteUrl + "/_api/web/lists/getbytitle('" + listItem.listName + "')/items",
+        type: "POST",
+        data: body,
+        async: true,
+        headers: {
+            "X-RequestDigest": $("#__REQUESTDIGEST").val(),//requestDigest,
+            "accept": "application/json;odata=verbose",
+            "content-type": "application/json;odata=verbose",
+            "content-length": body.length
+        },
+        success: callBackSuccess,
+        error: callBackError
+    });
+}
+
+
+//----------------------------------------------------------------------------------------------------------
+// Following method will update a list item in a list
+function updateListItem(listItem, callBackSuccess, callBackError) {
+    var body = columnMetaData(listItem);
+    $.ajax({
+        url: _spPageContextInfo.webAbsoluteUrl + "/_api/web/lists/getbytitle('" + listItem.listName + "')/items(" + listItem.listItemId + ")",
+        type: "POST",
+        async: true,
+        headers: {
+            "X-RequestDigest": $("#__REQUESTDIGEST").val(),// requestDigest,
+            "IF-MATCH": "*",
+            "X-HTTP-Method": "MERGE",
+            "accept": "application/json;odata=verbose",
+            "content-type": "application/json;odata=verbose"
+        },
+        data: body,
+        success: callBackSuccess,
+        error: callBackError
+    });
+}
