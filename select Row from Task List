@@ -1,0 +1,9 @@
+ $(document).on("click", "#idHomePageEditItem", function () {        
+        $("#Hero-WPQ2").next().next().next().children("tbody").children().each(function () {
+            if ($(this).hasClass("s4-itm-selected")) {
+                // alert($(this).attr('id'));
+                //var selectedRecordId = $(this).children().eq(1).children().eq(0).attr("id");
+                var selectedRecordId = $(this).children().eq(1).children().children().children().children().attr("liid");
+}
+}
+}
