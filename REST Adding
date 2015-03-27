@@ -1,0 +1,35 @@
+Add the data to sharepoint list using REST
+var body = {
+        "__metadata": { "type": "SP.Data.RequestsListItem" },
+        "Title": "Request",
+        "Body": $("#txtDescription").val(),
+        "RequestForPersonId": employeeADId,
+        "RequestId": $("#ddlRequests").val(),
+        "AssignedToId": {
+            "results": [employeeADId1]
+        }
+    };
+
+    body = JSON.stringify(body);
+
+    $.ajax({
+        url: _spPageContextInfo.webAbsoluteUrl + "/_api/web/lists/getByTitle('Requests')/items",
+        type: "POST",
+        data: body,
+        async: false,
+        headers: {
+            "X-RequestDigest": $("#__REQUESTDIGEST").val(),
+            "accept": "application/json;odata=verbose",
+            "content-type": "application/json;odata=verbose",
+            "content-length": body.length
+        },
+
+        success: function (data) {
+            alert("Request Sent.");
+        },
+
+        error: function (err) {
+            alert(JSON.stringify(err));
+        }
+    });
+
