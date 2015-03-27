@@ -1,0 +1,22 @@
+$.ajax({
+            url: _spPageContextInfo.webAbsoluteUrl + "/_api/web/lists/getbytitle('Requests')/items(" + itemId + ")",
+            type: "POST",
+            async: false,
+            headers: {
+                "X-RequestDigest": $("#__REQUESTDIGEST").val(),
+                "IF-MATCH": "*",
+                "X-HTTP-Method": "MERGE",
+                "accept": "application/json;odata=verbose",
+                "content-type": "application/json;odata=verbose"
+            },
+			data: bodyForEdit,
+ 			success: function (data) {
+ 			alert("Record updated successfully");
+                //successStatus("Data Updated Successfully");
+            },
+            error: function (err) {
+                var y = JSON.parse(err.responseText);
+                alert("Error: " + y.error.message.value);
+                alert("Record can not be updated.");
+            }
+        });
