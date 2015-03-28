@@ -37,21 +37,24 @@ function AddDataToAutoComplete() {
     }
 }
 
-function getEmployeesAddress(){
+function getEmployeesAddress() {
     var TypeObject = new Object();
     TypeObject.listName = "ContactDetails";
-    TypeObject.query = "$select=EmployeeAdNameId,HomeAddressStreet,HomeAddressCity,HomeAddressStateOrProvince,WorkState,CountryLookup/WorkCountry,CityLookup/WorkCity,RegionLookup/Title,OData__DCDateModified,WorkState&$expand=CountryLookup, CityLookup, RegionLookup&$filter=EmployeeAdName eq '1'";
+    TypeObject.query = "$select=EmployeeAdNameId,WorkZip,HomeAddressStreet,HomeAddressCity,HomeAddressStateOrProvince,WorkState,CountryLookup/WorkCountry,CityLookup/WorkCity,RegionLookup/Title,OData__DCDateModified,WorkState&$expand=CountryLookup, CityLookup, RegionLookup&$filter=EmployeeAdName eq '1'";
     employeeAddress = getListItems(TypeObject).d.results;
-    console.log(JSON.stringify(employeeAddress));
-    console.log(employeeAddress[0].HomeAddressStreet);
-    console.log(employeeAddress[0].HomeAddressCity);
-    console.log(employeeAddress[0].HomeAddressStateOrProvince);
-    console.log(employeeAddress[0].CityLookup.WorkCity);
-    console.log(employeeAddress[0].RegionLookup.Title);
-    console.log(employeeAddress[0].WorkState);
-    console.log(employeeAddress[0].CountryLookup.WorkCountry);
-    $("#txtOtherAddress").val(employeeAddress[0].HomeAddressStreet);
+    $("#txtOtherAddress").val(employeeAddress[0].HomeAddressStreet + ", " + employeeAddress[0].HomeAddressCity + ", " + employeeAddress[0].HomeAddressStateOrProvince + ", " + employeeAddress[0].CityLookup.WorkCity + ", " + employeeAddress[0].RegionLookup.Title + ", " + employeeAddress[0].WorkState + ", " + employeeAddress[0].CountryLookup.WorkCountry + ", " + employeeAddress[0].WorkZip
+
+    );
 }
+
+function getEmployeesCurrentAddress() {
+    var TypeObject = new Object();
+    TypeObject.listName = "ContactDetails";
+    TypeObject.query = "$select=EmployeeAdNameId,CurrentZipcode,OtherAddressStreet,OtherAddressCity,OtherAddressStateOrProvince,CurrentState,OtherCountryLookup/WorkCountry,OtherCityLookup/WorkCity,OtherRegionLookup/Title,OData__DCDateModified,WorkState&$expand=OtherCountryLookup, OtherCityLookup, OtherRegionLookup&$filter=EmployeeAdName eq '1'";
+    employeeCurrentAddress = getListItems(TypeObject).d.results;
+    $("#txtOtherAddress").val(employeeCurrentAddress[0].OtherAddressStreet + ", " + employeeCurrentAddress[0].OtherAddressCity + ", " + employeeCurrentAddress[0].OtherAddressStateOrProvince + ", " + employeeCurrentAddress[0].OtherCityLookup.WorkCity + ", " + employeeCurrentAddress[0].OtherRegionLookup.Title + ", " + employeeCurrentAddress[0].CurrentState + ", " + employeeCurrentAddress[0].OtherCountryLookup.WorkCountry + ", " + employeeCurrentAddress[0].CurrentZipcode);
+}
+
 
 function getAllInformationOfEmployee() {
     $("#lblEmployeeName").text("");
@@ -68,7 +71,7 @@ function getAllInformationOfEmployee() {
     TypeObject.query = "$select=EmployeeNo,OfficialName,ReportingManagerId,FunctionalManagerId,DateOfJoin,LocationLookup/Location,DepartmentLookup/Title,DesignationLookup/Designation,GradeLookup/Title,OUNameLookup/Title&$expand=LocationLookup,DepartmentLookup,DesignationLookup,GradeLookup,OUNameLookup&$filter=EmployeeNo eq '" + employeeId + "'";
     employeeAllData = getListItems(TypeObject).d.results;
     var str = employeeAllData[0].DateOfJoin;
-	var res = str.substring(0, 10);
+    var res = str.substring(0, 10);
     $("#lblEmployeeName").text(employeeAllData[0].OfficialName);
     $("#lblEmployeeId").text(employeeAllData[0].EmployeeNo);
     $("#lblDateOfJoining").text(res);
@@ -118,7 +121,7 @@ function GetSeperationType() {
     TypeObject.listName = "SeparationTypes";
     TypeObject.query = "$select=ID,Title";
     seperationTypeData = getListItems(TypeObject).d.results;
-//    console.log(JSON.stringify(seperationTypeData));
+    //    console.log(JSON.stringify(seperationTypeData));
     return seperationTypeData;
 }
 
@@ -173,7 +176,7 @@ function getNoticePeriod() {
 function getIdFromADName(employeeId) {
     var TypeObject = new Object();
     TypeObject.listName = "BasicEmployeeDetails";
-    TypeObject.query = "$select=EmployeeAdNameId,OfficialName&$filter=EmployeeNo eq '"+employeeId+"'";
+    TypeObject.query = "$select=EmployeeAdNameId,OfficialName&$filter=EmployeeNo eq '" + employeeId + "'";
     NoticePeriod = getListItems(TypeObject).d.results;
     return NoticePeriod[0].EmployeeAdNameId;
 }
@@ -200,8 +203,8 @@ function calculateNoticePeriodShortFall() {
     var noticePeriodShortFall = noticePeridValue - diffDaysInDates;
     //	alert("diffDays "+diffDaysInDates );
     //	alert("noticePeriodShortFall " + noticePeriodShortFall );
-    $("#lblNoticePeriodShortFall").text(noticePeriodShortFall);   
-	
+    $("#lblNoticePeriodShortFall").text(noticePeriodShortFall);
+
 }
 
 /*
@@ -229,69 +232,92 @@ function calculateNoticePeriodShortFall() {
 
 */
 
-$(document).ready(function() {
+$(document).ready(function () {
 
-	  var id = null;
+    $("#address").change(function () {
+        var addressType = $(this).val();
+        if (addressType == "Permanent Address") {
+            $("#txtOtherAddress").prop("readonly", true);
+            getEmployeesAddress();
+        }
+        if (addressType == "Current Address") {
+            $("#txtOtherAddress").prop("readonly", true);
+            getEmployeesCurrentAddress();
+        }
+        if (addressType == "Other Address") {
+            $("#txtOtherAddress").prop("readonly", false);
+            $("#txtOtherAddress").val("");
+        }
+
+
+    });
+
+
+    var id = null;
+
     function AppViewModel() {
-    var self= this;
-    self.seperationType = ko.observable();
-    self.resignationReason =  ko.observable();
-    self.resignationLetterDate = ko.observable();  
-    self.requestRelievingDate = ko.observable();
-    self.actualRelievingDate = ko.observable();
-    self.mailingAddress = ko.observable();
-    self.nextEmployer = ko.observable();
-    self.endOfNoticePeriod = ko.observable();
-    self.noticePeriodShortFall = ko.observable();
-    self.descriptionReason = ko.observable();
-   // self.otherAddress = ko.observable();
-   // self.personalEmailAddress = ko.observable();
-    	self.submit = function(){    	
-    	alert(employeeId);	
-    		self.noticePeriodShortFall($("#lblNoticePeriodShortFall").text());    		
-    		dialogWithNoButton("Please Wait", "Saving your data");
-                var dataObject = new Object();
-                var listName = 'RecordResignations';
-                var fieldData = [['Title', employeeId],
-				                 ['EmployeeAdNameId',getIdFromADName(employeeId)],
-                   				 ['ResignationLetterDate', $("#txtResignationLetterDate").val()],
-                   				 ['SeperationTypeId',self.seperationType()],
-                   				 ['ResignationReasonId',self.resignationReason()],
-                   				 ['RequestRelievingDate',$("#txtRequestRelievingDate").val()],
-                   				 ['ActualRelievingDate',$("#txtActualRelievingDate").val()],
-                   				 ['MailingAddressSameAs',self.mailingAddress()],
-                   				 ['NextEmployer', $("#txtNextEmployer").val()],
-                   				 ['EndOfNoticePeriod',$("#txtEndofNoticePeriod").val()],
-                   				 ['NoticePeriodShortFall', $("#lblNoticePeriodShortFall").val()],
-                   				 ['DescriptionOfReason',$("#txtReasonDescription").val()]                   			                			                
-                				];
-                
-                var listDataObj = new listData(listName, fieldData, id);
-                if (id == null) {   // check for save or update data.
-                    //Save Data;
-                    addListItem(listDataObj,
-                        function (data) {                          
-						successStatus("Data Saved Successfully");
-                            closeModelDialog();
-                            //ResetFields();
-//                            refreshWebPart();
-                        },
-                        function (err) {
-                            //alert(JSON.stringify(err));
-                            //alert(err);
-                            closeModelDialog();
-                            var errorString = JSON.parse(err.responseText);
-                            errorStatus("Error: " + errorString.error.message.value);
-                           // refreshWebPart();
-                        });
-                }
+        var self = this;
+        self.seperationType = ko.observable();
+        self.resignationReason = ko.observable();
+        self.resignationLetterDate = ko.observable();
+        self.requestRelievingDate = ko.observable();
+        self.actualRelievingDate = ko.observable();
+        self.mailingAddress = ko.observable();
+        self.nextEmployer = ko.observable();
+        self.endOfNoticePeriod = ko.observable();
+        self.noticePeriodShortFall = ko.observable();
+        self.descriptionReason = ko.observable();
+        // self.otherAddress = ko.observable();
+        // self.personalEmailAddress = ko.observable();
+        self.submit = function () {
+            alert(employeeId);
+            self.noticePeriodShortFall($("#lblNoticePeriodShortFall").text());
+            dialogWithNoButton("Please Wait", "Saving your data");
+            var dataObject = new Object();
+            var listName = 'RecordResignations';
+            var fieldData = [
+                ['Title', employeeId],
+                ['EmployeeAdNameId', getIdFromADName(employeeId)],
+                ['ResignationLetterDate', $("#txtResignationLetterDate").val()],
+                ['SeperationTypeId', self.seperationType()],
+                ['ResignationReasonId', self.resignationReason()],
+                ['RequestRelievingDate', $("#txtRequestRelievingDate").val()],
+                ['ActualRelievingDate', $("#txtActualRelievingDate").val()],
+                ['MailingAddressSameAs', self.mailingAddress()],
+                ['NextEmployer', $("#txtNextEmployer").val()],
+                ['EndOfNoticePeriod', $("#txtEndofNoticePeriod").val()],
+                ['NoticePeriodShortFall', $("#lblNoticePeriodShortFall").val()],
+                ['DescriptionOfReason', $("#txtReasonDescription").val()]
+            ];
 
-    	}  
-    	
-	}
-        
-	ko.applyBindings(new AppViewModel());
-	
+            var listDataObj = new listData(listName, fieldData, id);
+            if (id == null) { // check for save or update data.
+                //Save Data;
+                addListItem(listDataObj,
+
+                function (data) {
+                    successStatus("Data Saved Successfully");
+                    closeModelDialog();
+                    //ResetFields();
+                    //                            refreshWebPart();
+                },
+
+                function (err) {
+                    //alert(JSON.stringify(err));
+                    //alert(err);
+                    closeModelDialog();
+                    var errorString = JSON.parse(err.responseText);
+                    errorStatus("Error: " + errorString.error.message.value);
+                    // refreshWebPart();
+                });
+            }
+
+        }
+
+    }
+
+    ko.applyBindings(new AppViewModel());
+
     addDataToSeperationTypeDropdown();
     addDataToResignationReasonDropdown();
     AddDataToAutoComplete();
@@ -312,6 +338,5 @@ $(document).ready(function() {
     $("#txtActualRelievingDate").on("change", function () {
         calculateNoticePeriodShortFall();
     });
-                     
-});
 
+});
